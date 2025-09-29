@@ -152,9 +152,11 @@ export default function Home() {
     }
 
     function authHeaderIfAny() {
-        const token = localStorage.getItem('token');
-        return token ? { Authorization: `Bearer ${token}` } : {};
+       if (typeof window === 'undefined') return {};
+       const token = localStorage.getItem('token');
+       return token ? { Authorization: `Bearer ${token}` } : {};
     }
+
 
     return (
         <div className="space-y-6">
@@ -380,3 +382,4 @@ function AuthBox() {
         </section>
     );
 }
+
