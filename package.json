@@ -1,0 +1,15 @@
+{
+  "name": "indecisive-eater",
+  "private": true,
+  "scripts": {
+    "bootstrap": "npm i --prefix server && npm i --prefix web",
+    "postinstall": "npm run bootstrap",
+    "dev": "concurrently -k \"npm run dev --prefix server\" \"npm run dev --prefix web\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.17"
+  }
+}
