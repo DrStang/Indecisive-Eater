@@ -323,6 +323,7 @@ function AuthBox() {
         const url = `${API}/api/auth/${mode}`;
         const { data } = await axios.post(url, { email, password });
         localStorage.setItem('token', data.token);
+        window.dispatchEvent(new Event('auth-change')); // << add this line
         setSignedIn(true);
         alert('Signed in!');
     }
@@ -382,4 +383,5 @@ function AuthBox() {
         </section>
     );
 }
+
 
