@@ -11,6 +11,7 @@ import { requireAuth, signToken } from './auth';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,20 @@ app.use(express.json());
 
 const providerName = (process.env.PROVIDER || 'google') as 'google'|'yelp';
 const primaryProvider: PlacesProvider = providerName === 'yelp' ? YelpProvider : GoogleProvider;
+
+import jwt from 'jsonwebtoken';
+
+function optionalUserId(req: any): number | null {
+  try {
+    const h = String(req.headers.authorization || '');
+    const token = h.startsWith('Bearer ') ? h.slice(7) : '';
+    if (!token) return null;
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    return Number(payload.sub) || null;
+  } catch {
+    return null;
+  }
+}
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 function optionalUserId(req: any): number | null {
@@ -196,5 +211,6 @@ app.post('/api/group/:slug/vote', async (req: any, res) => {
     await pool.query('INSERT IGNORE INTO group_votes (group_id, choice, voter_token) VALUES (:gid,:ch,:vt)', { gid: g.id, ch: body.data.choice, vt: token });
     res.json({ ok: true, voterToken: token });
 });
+
 
 app.listen(process.env.PORT || 3001, () => { console.log(`API up on ${process.env.PORT || 3001}`); });
