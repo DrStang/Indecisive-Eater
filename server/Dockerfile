@@ -1,17 +1,27 @@
-# ---- build ----
+# ---------- build ----------
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --include=dev
+
+# copy just manifest(s) first for better caching
+COPY package.json package-lock.json* ./
+# install with dev deps so TypeScript can compile
+RUN npm install --include=dev
+
+# now bring in the source and build
 COPY . .
 RUN npm run build
 
-# ---- runtime ----
+# ---------- runtime ----------
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package*.json ./
-RUN npm ci --omit=dev
+
+# install only prod deps for a slim image
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev --ignore-scripts
+
+# bring compiled server
 COPY --from=build /app/dist ./dist
+
 EXPOSE 3001
 CMD ["node","dist/index.js"]
