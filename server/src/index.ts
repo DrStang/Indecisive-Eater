@@ -2,12 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
-import { GoogleProvider } from './providers/google';
-import { YelpProvider } from './providers/yelp';
-import { OSMProvider } from './providers/osm';
-import type { PlacesProvider } from './providers/provider';
-import { summarizePlace } from './openai';
-import { requireAuth, signToken } from './auth';
+import { GoogleProvider } from './providers/google.js';
+import { YelpProvider } from './providers/yelp.js';
+import { OSMProvider } from './providers/osm.js';
+import type { PlacesProvider } from './providers/provider.js';
+import { summarizePlace } from './openai.js';
+import { requireAuth, signToken } from './auth.js';
 import bcryptjs from 'bcryptjs';
 import { z } from 'zod';
 import crypto from 'crypto';
@@ -203,4 +203,5 @@ app.post('/api/group/:slug/vote', async (req: any, res) => {
 
 
 app.listen(process.env.PORT || 3001, () => { console.log(`API up on ${process.env.PORT || 3001}`); });
+
 
