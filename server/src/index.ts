@@ -20,19 +20,6 @@ app.use(express.json());
 const providerName = (process.env.PROVIDER || 'google') as 'google'|'yelp';
 const primaryProvider: PlacesProvider = providerName === 'yelp' ? YelpProvider : GoogleProvider;
 
-import jwt from 'jsonwebtoken';
-
-function optionalUserId(req: any): number | null {
-  try {
-    const h = String(req.headers.authorization || '');
-    const token = h.startsWith('Bearer ') ? h.slice(7) : '';
-    if (!token) return null;
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    return Number(payload.sub) || null;
-  } catch {
-    return null;
-  }
-}
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 function optionalUserId(req: any): number | null {
@@ -102,7 +89,7 @@ app.post('/api/pick', async (req: any, res) => {
 
     const shuffled = filtered.sort(() => Math.random() - 0.5);
     const [primary, b1, b2] = [shuffled[0], shuffled[1], shuffled[2]];
-    
+
 
     async function upsertAndEnrich(p?: any) {
         if (!p) return null as any;
@@ -155,15 +142,15 @@ app.post('/api/dislikes', requireAuth, async (req: any, res) => {
 app.get('/api/choices', requireAuth, async (req: any, res) => {
     const [rows] = await pool.query(
         `SELECT c.id, c.created_at,
-            p.name AS primary_name, p.address AS primary_address, p.rating AS primary_rating,
-            b1.name AS b1_name, b2.name AS b2_name
-       FROM choices c
-       JOIN places p  ON p.id = c.primary_place_id
-  LEFT JOIN places b1 ON b1.id = c.backup1_place_id
-  LEFT JOIN places b2 ON b2.id = c.backup2_place_id
-      WHERE c.user_id=:u
-      ORDER BY c.created_at DESC
-      LIMIT 50`,
+                p.name AS primary_name, p.address AS primary_address, p.rating AS primary_rating,
+                b1.name AS b1_name, b2.name AS b2_name
+         FROM choices c
+                  JOIN places p  ON p.id = c.primary_place_id
+                  LEFT JOIN places b1 ON b1.id = c.backup1_place_id
+                  LEFT JOIN places b2 ON b2.id = c.backup2_place_id
+         WHERE c.user_id=:u
+         ORDER BY c.created_at DESC
+             LIMIT 50`,
         { u: req.userId }
     );
     res.json(rows);
@@ -184,15 +171,15 @@ app.get('/api/group/:slug', async (req, res) => {
     const slug = String(req.params.slug);
     const [rows] = await pool.query(
         `SELECT g.id, g.slug,
-            p.name  AS primary_name, p.address AS primary_address, p.rating AS primary_rating, p.id AS primary_id,
-            b1.name AS b1_name, b1.id AS b1_id,
-            b2.name AS b2_name, b2.id AS b2_id
-       FROM groups g
-       JOIN places p  ON p.id = g.primary_place_id
-  LEFT JOIN places b1 ON b1.id = g.backup1_place_id
-  LEFT JOIN places b2 ON b2.id = g.backup2_place_id
-      WHERE g.slug=:slug
-      LIMIT 1`,
+                p.name  AS primary_name, p.address AS primary_address, p.rating AS primary_rating, p.id AS primary_id,
+                b1.name AS b1_name, b1.id AS b1_id,
+                b2.name AS b2_name, b2.id AS b2_id
+         FROM groups g
+                  JOIN places p  ON p.id = g.primary_place_id
+                  LEFT JOIN places b1 ON b1.id = g.backup1_place_id
+                  LEFT JOIN places b2 ON b2.id = g.backup2_place_id
+         WHERE g.slug=:slug
+             LIMIT 1`,
         { slug }
     );
     const g = (rows as any[])[0];
