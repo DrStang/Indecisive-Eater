@@ -1,15 +1,12 @@
 # ---------- build ----------
+# build stage
 FROM node:20-alpine AS build
 WORKDIR /app
-
-# copy just manifest(s) first for better caching
 COPY package.json package-lock.json* ./
-# install WITH dev deps so TypeScript has @types/*
-RUN npm install --include=dev
-
-# now bring in the source and build
+RUN npm install --include=dev        # <— dev deps for tsc
 COPY . .
 RUN npm run build
+
 
 # ---------- runtime ----------
 FROM node:20-alpine
