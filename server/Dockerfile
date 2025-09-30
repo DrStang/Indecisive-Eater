@@ -4,7 +4,7 @@ WORKDIR /app
 
 # copy just manifest(s) first for better caching
 COPY package.json package-lock.json* ./
-# install with dev deps so TypeScript can compile
+# install WITH dev deps so TypeScript has @types/*
 RUN npm install --include=dev
 
 # now bring in the source and build
@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --ignore-scripts
 
-# bring compiled server
+# bring compiled output
 COPY --from=build /app/dist ./dist
 
 EXPOSE 3001
