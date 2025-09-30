@@ -8,10 +8,12 @@ import { OSMProvider } from './providers/osm';
 import type { PlacesProvider } from './providers/provider';
 import { summarizePlace } from './openai';
 import { requireAuth, signToken } from './auth';
-import bcrypt from 'bcryptjs';
+import bcryptjs from 'bcryptjs';
 import { z } from 'zod';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+
+const bcrypt = (bcryptjs as any).default ?? bcryptjs;
 
 const app = express();
 app.use(cors());
