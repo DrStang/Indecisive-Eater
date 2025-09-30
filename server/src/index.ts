@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { pool } from './db';
+import { pool } from './db.js';
 import { GoogleProvider } from './providers/google';
 import { YelpProvider } from './providers/yelp';
 import { OSMProvider } from './providers/osm';
@@ -203,3 +203,4 @@ app.post('/api/group/:slug/vote', async (req: any, res) => {
 
 
 app.listen(process.env.PORT || 3001, () => { console.log(`API up on ${process.env.PORT || 3001}`); });
+
