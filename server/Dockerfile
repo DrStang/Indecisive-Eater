@@ -15,9 +15,12 @@ RUN apk add --no-cache nodejs npm netcat-openbsd
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install production deps
+# Install production deps INCLUDING socks
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --ignore-scripts
+
+# Install socks explicitly if not in dependencies
+RUN npm install socks
 
 # Copy compiled output
 COPY --from=build /app/dist ./dist
