@@ -36,6 +36,8 @@ app.use(cors({
   optionsSuccessStatus: 204,
 }));
 app.options('*', cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
   
 
 const providerName = (process.env.PROVIDER || 'google') as 'google'|'yelp';
@@ -267,6 +269,7 @@ app.post('/api/group/:slug/vote', async (req: any, res) => {
 
 
 app.listen(process.env.PORT || 3001, () => { console.log(`API up on ${process.env.PORT || 3001}`); });
+
 
 
 
