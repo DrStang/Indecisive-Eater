@@ -20,12 +20,20 @@ tailscale status | grep "tower2"
 echo "========================"
 
 echo "Starting Node.js SOCKS proxy for MySQL..."
-node /socks-proxy.js &
+cd /app
+node socks-proxy.js &
+
+PROXY_PID=$!
+echo "Proxy started with PID: $PROXY_PID"
 
 sleep 3
 
 echo "Testing proxy..."
-nc -zv localhost 3306 || echo "⚠ Proxy not ready yet"
+if nc -zv localhost 3306 2>&1 | grep -q "open\|succeeded"; then
+    echo "✓ Proxy is working!"
+else
+    echo "⚠ Proxy test inconclusive, continuing anyway..."
+fi
 
 echo "Starting application..."
 exec node dist/index.js
