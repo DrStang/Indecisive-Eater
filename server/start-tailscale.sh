@@ -21,19 +21,25 @@ echo "========================"
 
 echo "Starting Node.js SOCKS proxy for MySQL..."
 cd /app
-node socks-proxy.cjs &
+node socks-proxy.cjs > /tmp/proxy.log 2>&1 &
 
 PROXY_PID=$!
 echo "Proxy started with PID: $PROXY_PID"
 
+# Wait and check if it's actually running
 sleep 3
 
-echo "Testing proxy..."
-if nc -zv localhost 3306 2>&1 | grep -q "open\|succeeded"; then
-    echo "✓ Proxy is working!"
-else
-    echo "⚠ Proxy test inconclusive, continuing anyway..."
+if ! kill -0 $PROXY_PID 2>/dev/null; then
+    echo "❌ Proxy process died! Checking logs:"
+    cat /tmp/proxy.log
+    exit 1
 fi
+
+echo "Proxy process is running. Checking logs:"
+cat /tmp/proxy.log
+
+echo "Testing proxy with timeout..."
+timeout 5 nc -zv localhost 3306 2>&1 && echo "✓ Proxy is responding!" || echo "⚠ Proxy test timed out or failed"
 
 echo "Starting application..."
 exec node dist/index.js
