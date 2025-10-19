@@ -2,9 +2,10 @@
 set -e
 
 echo "Starting Tailscale daemon..."
-mkdir -p /tmp/tailscale
-tailscaled --state=/tmp/tailscale/tailscaled.state --socket=/tmp/tailscale/tailscaled.sock --tun=userspace-networking &
+mkdir -p /var/run/tailscale /var/lib/tailscale
+tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock --tun=userspace-networking &
 
+# Wait for tailscaled to start
 sleep 3
 
 echo "Connecting to Tailscale (ephemeral)..."
