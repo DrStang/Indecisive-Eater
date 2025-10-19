@@ -22,8 +22,8 @@ RUN npm install --omit=dev --ignore-scripts && npm install socks
 # Copy compiled output
 COPY --from=build /app/dist ./dist
 
-# Copy proxy script to /app directory (not root)
-COPY socks-proxy.js ./socks-proxy.js
+# Copy proxy script as .cjs
+COPY socks-proxy.cjs ./socks-proxy.cjs
 
 # Copy startup script
 COPY start-tailscale.sh /start-tailscale.sh
