@@ -21,7 +21,7 @@ echo "========================"
 
 echo "Starting Node.js SOCKS proxy for MySQL..."
 cd /app
-node socks-proxy.js &
+node socks-proxy.cjs &
 
 PROXY_PID=$!
 echo "Proxy started with PID: $PROXY_PID"
