@@ -13,8 +13,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install Tailscale
-RUN apk add --no-cache ca-certificates iptables ip6tables iproute2 && \
-    wget -qO- https://pkgs.tailscale.com/stable/tailscale_latest_$(uname -s)_$(uname -m).tgz | tar xzf - -C /usr/local/bin --strip-components=1
+RUN apk add --no-cache ca-certificates iptables ip6tables iproute2 curl && \
+    curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_$(uname -s)_$(uname -m).tgz | tar xzf - -C /usr/local/bin --strip-components=1
 
 # install only prod deps for a slim image
 COPY package.json package-lock.json* ./
