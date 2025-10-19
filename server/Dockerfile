@@ -9,8 +9,8 @@ RUN npm run build
 # ---------- runtime ----------
 FROM tailscale/tailscale:latest
 
-# Install Node.js
-RUN apk add --no-cache nodejs npm
+# Install Node.js and socat
+RUN apk add --no-cache nodejs npm socat
 
 WORKDIR /app
 ENV NODE_ENV=production
