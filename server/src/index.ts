@@ -40,6 +40,18 @@ app.options('*', cors());
 
 const providerName = (process.env.PROVIDER || 'google') as 'google'|'yelp';
 const primaryProvider: PlacesProvider = providerName === 'yelp' ? YelpProvider : GoogleProvider;
+// ---- Add this near the top, before any app.post/get ----
+function optionalUserId(req: any): number | null {
+  try {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token) return null;
+    const payload: any = jwt.verify(token, process.env.JWT_SECRET!);
+    return Number(payload.sub) || null;
+  } catch {
+    return null;
+  }
+}
 
 
 app.get('/api/health', async (_req, res) => {
@@ -255,6 +267,7 @@ app.post('/api/group/:slug/vote', async (req: any, res) => {
 
 
 app.listen(process.env.PORT || 3001, () => { console.log(`API up on ${process.env.PORT || 3001}`); });
+
 
 
 
