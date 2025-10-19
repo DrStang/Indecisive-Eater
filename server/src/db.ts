@@ -7,8 +7,9 @@ export const pool = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    ssl: { rejectUnauthorized: true, minVersion: 'TLSv1.2' },
+    //ssl: { rejectUnauthorized: true, minVersion: 'TLSv1.2' },
     connectionLimit: 10,
     namedPlaceholders: true
 
 });
+
