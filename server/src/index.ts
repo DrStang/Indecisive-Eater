@@ -16,26 +16,75 @@ import jwt from 'jsonwebtoken';
 const bcrypt = (bcryptjs as any).default ?? bcryptjs;
 
 const app = express();
+const ORIGIN_WHITELIST = [
+  'https://indecisive-eater.vercel.app',
+  'http://localhost:3000',
+];
+const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+
 app.use(cors({
-  origin: 'https://indecisive-eater.vercel.app',
-   
-  credentials: true
-}));app.use(express.json());
+  origin(origin, cb) {
+    if(!origin) return cb(null, false);
+    const allowed =
+      ORIGIN_WHITELIST.includes(origin) ||
+      VERCEL_PREVIEW_REGEX.test(origin);
+    cb(null,allowed ? origin : false);
+},
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+}));
+app.options('*', cors());
+  
 
 const providerName = (process.env.PROVIDER || 'google') as 'google'|'yelp';
 const primaryProvider: PlacesProvider = providerName === 'yelp' ? YelpProvider : GoogleProvider;
 
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
-function optionalUserId(req: any): number | null {
-    try {
-        const header = req.headers.authorization || '';
-        const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-        if (!token) return null;
-        const payload: any = require('jsonwebtoken').verify(token, process.env.JWT_SECRET!);
-        return Number(payload.sub) || null;
-    } catch { return null; }
-}
+app.get('/api/health', async (_req, res) => {
+  const started = Date.now();
+  try {
+    // Works with mysql2/promise pools — adjust if you use a different client
+    const [rows] = await pool.query('SELECT 1 AS ok');
+    const dbMs = Date.now() - started;
+
+    // Try to read pool stats if your pool exposes them; otherwise omit
+    const poolStats: any = {};
+    for (const key of ['activeConnections', 'idleConnections', 'queueSize', 'totalConnections']) {
+      if (key in (pool as any)) poolStats[key] = (pool as any)[key];
+    }
+
+    res.json({
+      ok: true,
+      time: new Date().toISOString(),
+      provider: process.env.PROVIDER || 'google',
+      db: {
+        ok: rows && (rows as any)[0]?.ok === 1,
+        latency_ms: dbMs,
+        ...poolStats,
+      },
+    });
+  } catch (err: any) {
+    const dbMs = Date.now() - started;
+    res.status(503).json({
+      ok: false,
+      time: new Date().toISOString(),
+      provider: process.env.PROVIDER || 'google',
+      db: {
+        ok: false,
+        latency_ms: dbMs,
+        error: {
+          message: err?.message,
+          code: err?.code,
+          errno: err?.errno,
+          sqlState: err?.sqlState,
+        },
+      },
+    });
+  }
+});
+
 
 // Auth
 app.post('/api/auth/register', async (req, res) => {
@@ -206,6 +255,7 @@ app.post('/api/group/:slug/vote', async (req: any, res) => {
 
 
 app.listen(process.env.PORT || 3001, () => { console.log(`API up on ${process.env.PORT || 3001}`); });
+
 
 
 
