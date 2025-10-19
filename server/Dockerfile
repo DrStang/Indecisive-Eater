@@ -1,31 +1,31 @@
 # ---------- build ----------
-# build stage
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install --include=dev        # <— dev deps for tsc
+RUN npm install --include=dev
 COPY . .
 RUN npm run build
 
 # ---------- runtime ----------
-FROM node:20-alpine
+FROM tailscale/tailscale:latest
+
+# Install Node.js
+RUN apk add --no-cache nodejs npm
+
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install Tailscale
-RUN apk add --no-cache ca-certificates iptables ip6tables iproute2 tailscale
-
-# install only prod deps for a slim image
+# Install production deps
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --ignore-scripts
 
-# bring compiled output
+# Copy compiled output
 COPY --from=build /app/dist ./dist
 
 # Copy startup script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+COPY start-tailscale.sh /start-tailscale.sh
+RUN chmod +x /start-tailscale.sh
 
 EXPOSE 3001
 
-CMD ["/start.sh"]
+CMD ["/start-tailscale.sh"]
