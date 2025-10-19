@@ -9,8 +9,8 @@ RUN npm run build
 # ---------- runtime ----------
 FROM tailscale/tailscale:latest
 
-# Install Node.js and socat
-RUN apk add --no-cache nodejs npm socat
+# Install Node.js
+RUN apk add --no-cache nodejs npm netcat-openbsd
 
 WORKDIR /app
 ENV NODE_ENV=production
@@ -22,8 +22,9 @@ RUN npm install --omit=dev --ignore-scripts
 # Copy compiled output
 COPY --from=build /app/dist ./dist
 
-# Copy startup script
+# Copy scripts
 COPY start-tailscale.sh /start-tailscale.sh
+COPY socks-proxy.js /socks-proxy.js
 RUN chmod +x /start-tailscale.sh
 
 EXPOSE 3001
