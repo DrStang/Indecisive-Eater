@@ -10,24 +10,23 @@ RUN npm run build
 FROM tailscale/tailscale:latest
 
 # Install Node.js
-RUN apk add --no-cache nodejs npm netcat-openbsd
+RUN apk add --no-cache nodejs npm netcat-openbsd socat
 
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install production deps INCLUDING socks
+# Copy package files and install deps
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev --ignore-scripts
-
-# Install socks explicitly if not in dependencies
-RUN npm install socks
+RUN npm install --omit=dev --ignore-scripts && npm install socks
 
 # Copy compiled output
 COPY --from=build /app/dist ./dist
 
-# Copy scripts
+# Copy proxy script to /app directory (not root)
+COPY socks-proxy.js ./socks-proxy.js
+
+# Copy startup script
 COPY start-tailscale.sh /start-tailscale.sh
-COPY socks-proxy.js /socks-proxy.js
 RUN chmod +x /start-tailscale.sh
 
 EXPOSE 3001
