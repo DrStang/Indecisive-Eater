@@ -20,7 +20,7 @@ tailscale status | grep "tower2"
 echo "========================"
 
 echo "Starting socat proxy for MySQL..."
-socat TCP-LISTEN:3306,fork,reuseaddr SOCKS5:localhost:100.66.175.61:3306,socks5port=1055 &
+socat TCP-LISTEN:3306,fork,reuseaddr SOCKS5:localhost:100.66.175.61:3306,socksport=1055 &
 
 echo "Waiting for socat to be ready..."
 sleep 3
@@ -30,9 +30,3 @@ nc -zv localhost 3306 || echo "⚠ socat proxy not responding yet"
 
 echo "Starting application..."
 exec node dist/index.js
-```
-
-And update your Railway environment variable:
-```
-DB_HOST=localhost   # Changed from 100.66.175.61
-DB_PORT=3306
