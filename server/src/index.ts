@@ -16,8 +16,12 @@ import jwt from 'jsonwebtoken';
 const bcrypt = (bcryptjs as any).default ?? bcryptjs;
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: [
+    'https://indecisive-eater.vercel.app',
+    ],
+  credentials: true
+}));app.use(express.json());
 
 const providerName = (process.env.PROVIDER || 'google') as 'google'|'yelp';
 const primaryProvider: PlacesProvider = providerName === 'yelp' ? YelpProvider : GoogleProvider;
@@ -203,5 +207,6 @@ app.post('/api/group/:slug/vote', async (req: any, res) => {
 
 
 app.listen(process.env.PORT || 3001, () => { console.log(`API up on ${process.env.PORT || 3001}`); });
+
 
 
