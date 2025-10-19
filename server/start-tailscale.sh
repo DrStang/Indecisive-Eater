@@ -19,22 +19,13 @@ echo "=== Tailscale Status ==="
 tailscale status | grep "tower2"
 echo "========================"
 
-echo "Starting MySQL proxy through Tailscale SOCKS5..."
-# Use a different socat syntax - proxy via SOCKS4A (which Tailscale SOCKS5 supports)
-socat TCP-LISTEN:3306,fork,reuseaddr SOCKS4A:localhost:100.66.175.61:3306,socksport=1055 &
+echo "Starting Node.js SOCKS proxy for MySQL..."
+node /socks-proxy.js &
 
-SOCAT_PID=$!
-echo "Socat proxy started with PID: $SOCAT_PID"
-
-echo "Waiting for socat to be ready..."
 sleep 3
 
-echo "Testing local MySQL connection through socat..."
-if nc -zv localhost 3306 2>&1; then
-    echo "✓ Proxy is listening on localhost:3306"
-else
-    echo "⚠ Proxy not responding"
-fi
+echo "Testing proxy..."
+nc -zv localhost 3306 || echo "⚠ Proxy not ready yet"
 
 echo "Starting application..."
 exec node dist/index.js
