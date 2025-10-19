@@ -3,24 +3,42 @@ set -e
 
 echo "Starting Tailscale daemon..."
 mkdir -p /var/run/tailscale /var/lib/tailscale
-tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock --tun=userspace-networking &
+tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock --tun=userspace-networking 2>&1 &
+
+TAILSCALED_PID=$!
+echo "Tailscaled started with PID: $TAILSCALED_PID"
 
 # Wait for tailscaled socket to be ready
-echo "Waiting for tailscaled to be ready..."
+echo "Waiting for tailscaled socket..."
 for i in $(seq 1 30); do
-    if tailscale status >/dev/null 2>&1; then
-        echo "✓ Tailscaled is ready"
+    if [ -S /var/run/tailscale/tailscaled.sock ]; then
+        echo "✓ Socket exists"
+        sleep 2  # Give it a moment to fully initialize
         break
     fi
     if [ $i -eq 30 ]; then
-        echo "✗ Tailscaled failed to start"
+        echo "✗ Tailscaled socket never appeared"
+        exit 1
+    fi
+    sleep 1
+done
+
+# Now verify we can communicate with it
+echo "Verifying tailscaled is responsive..."
+for i in $(seq 1 20); do
+    if tailscale status >/dev/null 2>&1; then
+        echo "✓ Tailscaled is responsive"
+        break
+    fi
+    if [ $i -eq 20 ]; then
+        echo "✗ Tailscaled not responding"
         exit 1
     fi
     sleep 1
 done
 
 echo "Connecting to Tailscale (ephemeral)..."
-tailscale up --authkey=${TAILSCALE_AUTHKEY} --hostname=railway-app-${RAILWAY_DEPLOYMENT_ID:-unknown} --accept-routes
+tailscale up --authkey=${TAILSCALE_AUTHKEY} --hostname=railway-app --accept-routes
 
 # Wait for FULL connection with better checks
 echo "Waiting for Tailscale connection..."
@@ -38,7 +56,7 @@ for i in $(seq 1 60); do
         
         # Test connectivity to your VPS
         echo "Testing connection to VPS (100.66.175.61)..."
-        if tailscale ping 100.66.175.61 -c 1 --timeout=5s; then
+        if tailscale ping 100.66.175.61 -c 1 --timeout=5s 2>&1; then
             echo "✓ Can reach VPS!"
         else
             echo "⚠ Warning: Cannot ping VPS, but will try to continue..."
