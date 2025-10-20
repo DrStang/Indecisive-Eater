@@ -1,34 +1,19 @@
-# ---------- build ----------
+ # ---------- build ----------
+# build stage
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install --include=dev
+RUN npm install --include=dev        # <— dev deps for tsc
 COPY . .
 RUN npm run build
-
 # ---------- runtime ----------
-FROM tailscale/tailscale:latest
-
-# Install Node.js
-RUN apk add --no-cache nodejs npm netcat-openbsd socat
-
+FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-
-# Copy package files and install deps
+# install only prod deps for a slim image
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev --ignore-scripts && npm install socks
-
-# Copy compiled output
+RUN npm install --omit=dev --ignore-scripts
+# bring compiled output
 COPY --from=build /app/dist ./dist
-
-# Copy proxy script as .cjs
-COPY socks-proxy.cjs ./socks-proxy.cjs
-
-# Copy startup script
-COPY start-tailscale.sh /start-tailscale.sh
-RUN chmod +x /start-tailscale.sh
-
 EXPOSE 3001
-
-CMD ["/start-tailscale.sh"]
+CMD ["node","dist/index.js"]
