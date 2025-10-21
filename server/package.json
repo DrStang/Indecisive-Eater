@@ -1,5 +1,5 @@
 {
-  "name": "indecisive-eater-api",
+  "name": "indecisive-eater-api", 
   "private": true,
   "type": "module",
   "scripts": {
@@ -28,5 +28,6 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.17"}
 }
+
 
 
