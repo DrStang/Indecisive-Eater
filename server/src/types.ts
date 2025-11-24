@@ -1,4 +1,4 @@
-export type ProviderName = 'google' | 'yelp' | 'osm';
+export type ProviderName = 'google' | 'yelp' | 'osm' | 'foursquare';
 
 
 export interface ProviderPlace {
