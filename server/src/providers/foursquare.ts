@@ -104,7 +104,7 @@ export const FoursquareProvider: PlacesProvider = {
             const { data } = await axios.get(FOURSQUARE_API, {
                 params,
                 headers: {
-                    'Authorization': apiKey,
+                    'Authorization': 'Bearer ${apiKey}',
                     'Accept': 'application/json',
                     'X-Places-Api-Version': '2025-06-17'
 
@@ -118,5 +118,6 @@ export const FoursquareProvider: PlacesProvider = {
         }
     }
 };
+
 
 
