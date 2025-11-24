@@ -105,7 +105,9 @@ export const FoursquareProvider: PlacesProvider = {
                 params,
                 headers: {
                     'Authorization': apiKey,
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-Places-Api-Version': '2025-06-17'
+
                 }
             });
 
@@ -116,4 +118,5 @@ export const FoursquareProvider: PlacesProvider = {
         }
     }
 };
+
 
