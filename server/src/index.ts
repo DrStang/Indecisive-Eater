@@ -5,6 +5,7 @@ import { pool } from './db.js';
 import { GoogleProvider } from './providers/google.js';
 import { YelpProvider } from './providers/yelp.js';
 import { OSMProvider } from './providers/osm.js';
+import { FoursquareProvider } from './providers/foursquare.js';
 import type { PlacesProvider } from './providers/provider.js';
 import { summarizePlace } from './openai.js';
 import { requireAuth, signToken, optionalAuth } from './auth.js';
@@ -287,22 +288,35 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
         const cached = (cacheRows as any[])[0];
         places = JSON.parse(cached.provider_results);
     } else {
-        // Fetch from provider
-        places = await primaryProvider.searchNearby({
+        // Fetch from multiple providers in parallel for better coverage
+        const searchParams = {
             lat,
             lng,
             miles,
             cuisines: cuisines?.map(c => c.toLowerCase())
-        });
+        };
 
-        // OSM fallback
+        const [googleResults, foursquareResults] = await Promise.all([
+            primaryProvider.searchNearby(searchParams),
+            FoursquareProvider.searchNearby(searchParams)
+        ]);
+
+        // Merge results from both providers
+        places = [...googleResults, ...foursquareResults];
+
+        // Deduplicate by name and location (places that are very close to each other with same name)
+        const deduped = new Map<string, any>();
+        for (const p of places) {
+            const key = `${p.name.toLowerCase().replace(/[^a-z0-9]/g, '')}_${Math.round((p.lat || 0) * 1000)}_${Math.round((p.lng || 0) * 1000)}`;
+            if (!deduped.has(key)) {
+                deduped.set(key, p);
+            }
+        }
+        places = Array.from(deduped.values());
+
+        // OSM fallback only if no results from Google or Foursquare
         if (places.length === 0 && process.env.OSM_FALLBACK !== '0') {
-            places = await OSMProvider.searchNearby({
-                lat,
-                lng,
-                miles,
-                cuisines: cuisines?.map(c => c.toLowerCase())
-            });
+            places = await OSMProvider.searchNearby(searchParams);
         }
 
         // Cache results
@@ -755,13 +769,29 @@ app.post('/api/rooms', optionalAuth, async (req: any, res) => {
     const { name, lat, lng, radius, filters } = parsed.data;
     const slug = crypto.randomBytes(6).toString('hex');
 
-    // Fetch initial candidates
-    const places = await primaryProvider.searchNearby({
+    // Fetch initial candidates from multiple providers
+    const searchParams = {
         lat,
         lng,
         miles: radius || 5,
         cuisines: filters?.cuisines?.map(c => c.toLowerCase())
-    });
+    };
+
+    const [googleResults, foursquareResults] = await Promise.all([
+        primaryProvider.searchNearby(searchParams),
+        FoursquareProvider.searchNearby(searchParams)
+    ]);
+
+    // Merge and deduplicate results
+    const allPlaces = [...googleResults, ...foursquareResults];
+    const deduped = new Map<string, any>();
+    for (const p of allPlaces) {
+        const key = `${p.name.toLowerCase().replace(/[^a-z0-9]/g, '')}_${Math.round((p.lat || 0) * 1000)}_${Math.round((p.lng || 0) * 1000)}`;
+        if (!deduped.has(key)) {
+            deduped.set(key, p);
+        }
+    }
+    const places = Array.from(deduped.values());
 
     const [result] = await pool.query(
         `INSERT INTO decision_rooms_v2 (slug, creator_id, name, lat, lng, radius, filters, candidates)
@@ -1050,12 +1080,24 @@ app.get('/api/ml/recommendations', requireAuth, async (req: any, res) => {
 
     const { lat, lng, limit } = parsed.data;
 
-    // Get nearby places
-    const places = await primaryProvider.searchNearby({
-        lat,
-        lng,
-        miles: 5,
-    });
+    // Get nearby places from multiple providers
+    const searchParams = { lat, lng, miles: 5 };
+
+    const [googleResults, foursquareResults] = await Promise.all([
+        primaryProvider.searchNearby(searchParams),
+        FoursquareProvider.searchNearby(searchParams)
+    ]);
+
+    // Merge and deduplicate
+    const allPlaces = [...googleResults, ...foursquareResults];
+    const deduped = new Map<string, any>();
+    for (const p of allPlaces) {
+        const key = `${p.name.toLowerCase().replace(/[^a-z0-9]/g, '')}_${Math.round((p.lat || 0) * 1000)}_${Math.round((p.lng || 0) * 1000)}`;
+        if (!deduped.has(key)) {
+            deduped.set(key, p);
+        }
+    }
+    const places = Array.from(deduped.values());
 
     // Get ML-weighted recommendations
     const recommendations = await getMLRecommendations(req.userId, places, { lat, lng, time_of_day: getTimeOfDay() });

@@ -217,7 +217,7 @@ export async function analyzeUserPatterns(userId: number): Promise<void> {
     for (const [patternKey, data] of patterns) {
         if (data.count < 3) continue; // Need at least 3 occurrences
 
-        const topCuisines = Array.from(data.cuisines.entries())
+        const topCuisines = (Array.from(data.cuisines.entries()) as [string, number][])
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .map(([c]) => c);
