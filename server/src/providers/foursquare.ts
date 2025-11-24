@@ -92,7 +92,7 @@ export const FoursquareProvider: PlacesProvider = {
             radius: radiusMeters,
             categories: '13000', // Food category ID
             limit: 50,
-            fields: 'fsq_id,name,location,geocodes,categories,rating,description'
+            fields: 'name,location,categories,rating,description'
         };
 
         // Add cuisine query if specified

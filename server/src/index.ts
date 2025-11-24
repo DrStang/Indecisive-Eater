@@ -319,10 +319,13 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
             places = await OSMProvider.searchNearby(searchParams);
         }
 
-        // Cache results
+        // Cache results (use ON DUPLICATE KEY UPDATE to handle race conditions)
         await pool.query(
             `INSERT INTO location_cache (cache_key, user_id, lat, lng, radius, filters, provider_results, expires_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))
+             ON DUPLICATE KEY UPDATE
+                provider_results = VALUES(provider_results),
+                expires_at = VALUES(expires_at)`,
             [
                 cacheKey,
                 req.userId || null,
