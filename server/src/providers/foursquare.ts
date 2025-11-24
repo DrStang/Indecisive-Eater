@@ -3,7 +3,7 @@ import axios from 'axios';
 import type { PlacesProvider } from './provider';
 import type { ProviderPlace } from '../types';
 
-const FOURSQUARE_API = 'https://api.foursquare.com/v3/places/search';
+const FOURSQUARE_API = 'https://places-api.foursquare.com/places/search';
 
 // Map Foursquare categories to cuisine types
 const CATEGORY_TO_CUISINE: Record<string, string[]> = {
@@ -116,3 +116,4 @@ export const FoursquareProvider: PlacesProvider = {
         }
     }
 };
+
