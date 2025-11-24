@@ -9,6 +9,7 @@ export interface ProviderPlace {
     lat?: number;
     lng?: number;
     rating?: number;
+    price_level?: number;
     cuisines?: string[];
     description?: string;
 }

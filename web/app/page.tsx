@@ -77,6 +77,10 @@ export default function EnhancedHome() {
 
     const [groupLink, setGroupLink] = useState<string | null>(null);
 
+    // ML Recommendations
+    const [mlRecommendations, setMlRecommendations] = useState<any[]>([]);
+    const [showMlRecs, setShowMlRecs] = useState(false);
+
     const picksReady = useMemo(() => !!primary || backups.length > 0, [primary, backups]);
 
     function geoMessage(e: Partial<GeoErr>) {
@@ -91,6 +95,7 @@ export default function EnhancedHome() {
         const token = localStorage.getItem('token');
         if (token) {
             loadPreferences();
+            loadMLRecommendations();
         }
     }, []);
     async function loadPreferences() {
@@ -112,6 +117,20 @@ export default function EnhancedHome() {
             }
         } catch (e) {
             console.error('Failed to load preferences', e);
+        }
+    }
+
+    async function loadMLRecommendations() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const { data } = await axios.get(`${API}/api/ml/recommendations`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setMlRecommendations(data);
+        } catch (e) {
+            console.error('Failed to load ML recommendations', e);
         }
     }
 
@@ -539,6 +558,55 @@ export default function EnhancedHome() {
                     />
                 </section>
             )}
+
+            {/* ML Recommendations */}
+            {mlRecommendations.length > 0 && (
+                <section className="space-y-4">
+                    <div className="rounded-2xl border bg-gradient-to-br from-purple-50 to-pink-50 p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <div>
+                                <h3 className="text-lg font-semibold text-purple-900">
+                                    🤖 Personalized for You
+                                </h3>
+                                <p className="text-sm text-purple-700 mt-1">
+                                    Based on your taste patterns
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowMlRecs(!showMlRecs)}
+                                className="px-3 py-1.5 rounded-lg bg-white border border-purple-200 text-sm font-medium hover:bg-purple-50"
+                            >
+                                {showMlRecs ? 'Hide' : 'Show'} ({mlRecommendations.length})
+                            </button>
+                        </div>
+                        {showMlRecs && (
+                            <div className="mt-4 grid sm:grid-cols-2 gap-4">
+                                {mlRecommendations.slice(0, 4).map((rec: any, idx: number) => (
+                                    <div key={idx} className="relative">
+                                        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 text-white flex items-center justify-center text-sm font-bold z-10">
+                                            {rec.score}
+                                        </div>
+                                        <RestaurantCard
+                                            r={{
+                                                ...rec.place,
+                                                reasons: rec.reasons
+                                            }}
+                                            onFav={() => favorite(rec.place.id)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <a
+                            href="/insights"
+                            className="mt-3 inline-block text-sm text-purple-700 hover:underline"
+                        >
+                            View all insights →
+                        </a>
+                    </div>
+                </section>
+            )}
+
             <AuthBox />
         </div>
     );
