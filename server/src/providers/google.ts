@@ -42,6 +42,7 @@ function toPlace(r: any): ProviderPlace {
         lat: r.geometry?.location?.lat,
         lng: r.geometry?.location?.lng,
         rating: r.rating,
+        price_level: r.price_level,
         description: Array.isArray(r.types) ? r.types.slice(0, 3).join(', ') : undefined,
         cuisines: Array.isArray(r.types)
             ? r.types

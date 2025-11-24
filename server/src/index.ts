@@ -376,11 +376,11 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
 
         const desc = await summarizePlace(p.name, p.description);
         const [r] = await pool.query(
-            `INSERT INTO places (provider, provider_id, name, address, lat, lng, rating, cuisine_csv, description)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `INSERT INTO places (provider, provider_id, name, address, lat, lng, rating, price_level, cuisine_csv, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
              name = VALUES(name), address = VALUES(address), lat = VALUES(lat), lng = VALUES(lng),
-             rating = VALUES(rating), cuisine_csv = VALUES(cuisine_csv), description = VALUES(description)`,
+             rating = VALUES(rating), price_level = VALUES(price_level), cuisine_csv = VALUES(cuisine_csv), description = VALUES(description)`,
             [
                 p.provider,
                 p.providerId,
@@ -389,6 +389,7 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
                 p.lat || null,
                 p.lng || null,
                 p.rating || null,
+                p.price_level || null,
                 (p.cuisines || []).join(','),
                 desc || null
             ]
