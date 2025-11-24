@@ -26,11 +26,52 @@ export default function InsightsPage() {
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
     useEffect(() => {
         loadPatterns();
-        loadRecommendations();
+        getUserLocation();
     }, []);
+
+    useEffect(() => {
+        if (coords) {
+            loadRecommendations();
+        }
+    }, [coords]);
+
+    async function getUserLocation() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            // Try to get saved location from preferences
+            const { data } = await axios.get(`${API}/api/preferences`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (data.default_lat && data.default_lng) {
+                setCoords({ lat: data.default_lat, lng: data.default_lng });
+                return;
+            }
+
+            // Fallback to browser geolocation
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        setCoords({
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        });
+                    },
+                    (error) => {
+                        console.error('Geolocation error:', error);
+                    }
+                );
+            }
+        } catch (e: any) {
+            console.error('Failed to get user location', e);
+        }
+    }
 
     async function loadPatterns() {
         try {
@@ -54,14 +95,27 @@ export default function InsightsPage() {
     async function loadRecommendations() {
         try {
             const token = localStorage.getItem('token');
-            if (!token) return;
+            if (!token || !coords) return;
 
             const { data } = await axios.get(`${API}/api/ml/recommendations`, {
+                params: {
+                    lat: coords.lat.toString(),
+                    lng: coords.lng.toString(),
+                    limit: '10'
+                },
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setRecommendations(data);
+
+            // Validate the response data
+            if (Array.isArray(data)) {
+                setRecommendations(data);
+            } else {
+                console.error('Invalid recommendations data:', data);
+                setRecommendations([]);
+            }
         } catch (e: any) {
             console.error('Failed to load recommendations', e);
+            setRecommendations([]);
         }
     }
 

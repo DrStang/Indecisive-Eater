@@ -95,9 +95,16 @@ export default function EnhancedHome() {
         const token = localStorage.getItem('token');
         if (token) {
             loadPreferences();
-            loadMLRecommendations();
         }
     }, []);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token && coords) {
+            loadMLRecommendations();
+        }
+    }, [coords]);
+
     async function loadPreferences() {
         try {
             const token = localStorage.getItem('token');
@@ -123,14 +130,27 @@ export default function EnhancedHome() {
     async function loadMLRecommendations() {
         try {
             const token = localStorage.getItem('token');
-            if (!token) return;
+            if (!token || !coords) return;
 
             const { data } = await axios.get(`${API}/api/ml/recommendations`, {
+                params: {
+                    lat: coords.lat.toString(),
+                    lng: coords.lng.toString(),
+                    limit: '10'
+                },
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setMlRecommendations(data);
+
+            // Validate the response data
+            if (Array.isArray(data)) {
+                setMlRecommendations(data);
+            } else {
+                console.error('Invalid ML recommendations data:', data);
+                setMlRecommendations([]);
+            }
         } catch (e) {
             console.error('Failed to load ML recommendations', e);
+            setMlRecommendations([]);
         }
     }
 
