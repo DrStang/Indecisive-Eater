@@ -109,11 +109,11 @@ app.post('/api/auth/register', async (req, res) => {
 
         // Create default smart lists
         await pool.query(
-            `INSERT INTO user_lists (user_id, name, list_type, icon) VALUES 
-             (?, 'Want to Try', 'want_to_try', '🎯'),
-             (?, 'Date Night', 'date_night', '💑'),
-             (?, 'Quick Bites', 'quick_lunch', '⚡'),
-             (?, 'Bucket List', 'bucket_list', '⭐')`,
+            `INSERT INTO user_lists (user_id, name, list_type, icon) VALUES
+                                                                         (?, 'Want to Try', 'want_to_try', '🎯'),
+                                                                         (?, 'Date Night', 'date_night', '💑'),
+                                                                         (?, 'Quick Bites', 'quick_lunch', '⚡'),
+                                                                         (?, 'Bucket List', 'bucket_list', '⭐')`,
             [id, id, id, id]
         );
 
@@ -318,14 +318,26 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
         if (places.length === 0 && process.env.OSM_FALLBACK !== '0') {
             places = await OSMProvider.searchNearby(searchParams);
         }
-
+        const sanitizedPlaces = places.map(p => ({
+            provider: p.provider,
+            providerId: p.providerId,
+            name: p.name,
+            address: p.address,
+            lat: p.lat,
+            lng: p.lng,
+            rating: p.rating,
+            price_level: p.price_level,
+            cuisines: p.cuisines,
+            description: p.description,
+            _weight: p._weight
+        }))
         // Cache results (use ON DUPLICATE KEY UPDATE to handle race conditions)
         await pool.query(
             `INSERT INTO location_cache (cache_key, user_id, lat, lng, radius, filters, provider_results, expires_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))
-             ON DUPLICATE KEY UPDATE
-                provider_results = VALUES(provider_results),
-                expires_at = VALUES(expires_at)`,
+                 ON DUPLICATE KEY UPDATE
+                                      provider_results = VALUES(provider_results),
+                                      expires_at = VALUES(expires_at)`,
             [
                 cacheKey,
                 req.userId || null,
@@ -333,7 +345,7 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
                 lng,
                 miles,
                 JSON.stringify({ cuisines, price_min, price_max, vibes }),
-                JSON.stringify(places)
+                JSON.stringify(sanitizedPlaces)
             ]
         );
     }
@@ -395,9 +407,9 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
         const [r] = await pool.query(
             `INSERT INTO places (provider, provider_id, name, address, lat, lng, rating, price_level, cuisine_csv, description)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE
-             name = VALUES(name), address = VALUES(address), lat = VALUES(lat), lng = VALUES(lng),
-             rating = VALUES(rating), price_level = VALUES(price_level), cuisine_csv = VALUES(cuisine_csv), description = VALUES(description)`,
+                 ON DUPLICATE KEY UPDATE
+                                      name = VALUES(name), address = VALUES(address), lat = VALUES(lat), lng = VALUES(lng),
+                                      rating = VALUES(rating), price_level = VALUES(price_level), cuisine_csv = VALUES(cuisine_csv), description = VALUES(description)`,
             [
                 p.provider,
                 p.providerId,
@@ -436,8 +448,8 @@ app.post('/api/pick', optionalAuth, async (req: any, res) => {
     // Log decision history
     if (req.userId && P?.placeId) {
         await pool.query(
-            `INSERT INTO decision_history_v2 
-             (user_id, session_id, place_id, provider, provider_id, action, search_lat, search_lng, search_radius, 
+            `INSERT INTO decision_history_v2
+             (user_id, session_id, place_id, provider, provider_id, action, search_lat, search_lng, search_radius,
               filters_applied, time_of_day, day_of_week, suggestion_reason)
              VALUES (?, ?, ?, ?, ?, 'shown', ?, ?, ?, ?, ?, ?, ?)`,
             [
@@ -554,7 +566,7 @@ app.get('/api/favorites', requireAuth, async (req: any, res) => {
     const [rows] = await pool.query(
         `SELECT p.*, f.created_at as favorited_at
          FROM favorites f
-         JOIN places p ON p.id = f.place_id
+                  JOIN places p ON p.id = f.place_id
          WHERE f.user_id = ?
          ORDER BY f.created_at DESC`,
         [req.userId]
@@ -598,7 +610,7 @@ app.get('/api/lists', requireAuth, async (req: any, res) => {
     const [rows] = await pool.query(
         `SELECT l.*, COUNT(li.id) as item_count
          FROM user_lists l
-         LEFT JOIN list_items li ON li.list_id = l.id
+                  LEFT JOIN list_items li ON li.list_id = l.id
          WHERE l.user_id = ?
          GROUP BY l.id
          ORDER BY l.sort_order, l.created_at`,
@@ -649,7 +661,7 @@ app.get('/api/lists/:listId', requireAuth, async (req: any, res) => {
     const [items] = await pool.query(
         `SELECT li.*, p.*
          FROM list_items li
-         JOIN places p ON p.id = li.place_id
+                  JOIN places p ON p.id = li.place_id
          WHERE li.list_id = ?
          ORDER BY li.priority DESC, li.added_at DESC`,
         [listId]
@@ -684,7 +696,7 @@ app.post('/api/lists/:listId/items', requireAuth, async (req: any, res) => {
     await pool.query(
         `INSERT INTO list_items (list_id, place_id, notes, priority)
          VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE notes = VALUES(notes), priority = VALUES(priority)`,
+             ON DUPLICATE KEY UPDATE notes = VALUES(notes), priority = VALUES(priority)`,
         [listId, placeId, notes || null, priority || 0]
     );
 
@@ -737,10 +749,10 @@ app.post('/api/lists/:listId/pick', requireAuth, async (req: any, res) => {
     const [items] = await pool.query(
         `SELECT p.*
          FROM list_items li
-         JOIN places p ON p.id = li.place_id
+                  JOIN places p ON p.id = li.place_id
          WHERE li.list_id = ?
          ORDER BY RAND()
-         LIMIT 1`,
+             LIMIT 1`,
         [listId]
     );
 
@@ -875,7 +887,7 @@ app.post('/api/rooms/:slug/join', optionalAuth, async (req: any, res) => {
     const [result] = await pool.query(
         `INSERT INTO room_participants (room_id, user_id, nickname, session_token)
          VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE nickname = VALUES(nickname), last_active = CURRENT_TIMESTAMP`,
+             ON DUPLICATE KEY UPDATE nickname = VALUES(nickname), last_active = CURRENT_TIMESTAMP`,
         [roomId, req.userId || null, nickname, sessionToken]
     );
 
@@ -922,7 +934,7 @@ app.post('/api/rooms/:slug/swipe', async (req, res) => {
     await pool.query(
         `INSERT INTO room_swipes (room_id, participant_id, place_id, swipe)
          VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE swipe = VALUES(swipe)`,
+             ON DUPLICATE KEY UPDATE swipe = VALUES(swipe)`,
         [roomId, participantId, placeId, swipe]
     );
 
@@ -1015,12 +1027,12 @@ app.get('/api/friends', requireAuth, async (req: any, res) => {
     const [rows] = await pool.query(
         `SELECT f.id, f.status, u.id as friend_id, u.email as friend_email
          FROM friendships f
-         JOIN users u ON u.id = f.friend_id
+                  JOIN users u ON u.id = f.friend_id
          WHERE f.user_id = ? AND f.status = 'accepted'
          UNION
          SELECT f.id, f.status, u.id as friend_id, u.email as friend_email
          FROM friendships f
-         JOIN users u ON u.id = f.user_id
+                  JOIN users u ON u.id = f.user_id
          WHERE f.friend_id = ? AND f.status = 'accepted'`,
         [req.userId, req.userId]
     );
@@ -1046,11 +1058,11 @@ app.get('/api/friends/activity', requireAuth, async (req: any, res) => {
     const [activities] = await pool.query(
         `SELECT fa.*, u.email as user_email, p.name as place_name, p.address as place_address
          FROM friend_activities fa
-         JOIN users u ON u.id = fa.user_id
-         JOIN places p ON p.id = fa.place_id
+                  JOIN users u ON u.id = fa.user_id
+                  JOIN places p ON p.id = fa.place_id
          WHERE fa.user_id IN (?) AND fa.visibility IN ('public', 'friends')
          ORDER BY fa.created_at DESC
-         LIMIT 50`,
+             LIMIT 50`,
         [friendIds]
     );
 
@@ -1197,4 +1209,3 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 app.listen(process.env.PORT || 3001, () => {
     console.log(`Enhanced API up on ${process.env.PORT || 3001}`);
 });
-
